@@ -2,13 +2,24 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import fp from 'fastify-plugin'
 import fastifyJwt from '@fastify/jwt'
 
+declare module 'fastify' {
+  interface FastifyInstance {
+    authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
+    authenticateInternal: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
+  }
+
+  interface FastifyRequest {
+    user?: { sub: string; [key: string]: unknown }
+  }
+}
+
 const IS_DEV = process.env.NODE_ENV !== 'production'
 const AUTH0_CONFIGURED =
   process.env.AUTH0_DOMAIN && !process.env.AUTH0_DOMAIN.startsWith('your-tenant')
 
 async function authPlugin(fastify: FastifyInstance) {
   if (AUTH0_CONFIGURED) {
-    await fastify.register(fastifyJwt as any, {
+    await fastify.register(fastifyJwt, {
       secret: {
         public: {
           url: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,

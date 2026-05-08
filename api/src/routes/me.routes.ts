@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
+import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { toSummary } from '../services/listing.service.js'
 
@@ -6,10 +7,16 @@ const IS_DEV = process.env.NODE_ENV !== 'production'
 const DEV_AUTH0_ID = 'dev|local'
 const DEV_EMAIL = 'dev@anchordeep.local'
 
+const SaveListingSchema = z.object({ listingId: z.string().min(1) })
+const CreateAlertSchema = z.object({
+  listingId: z.string().min(1),
+  targetPriceUsd: z.number().positive().optional(),
+})
+
 /** Extract Auth0 sub from verified JWT, or return dev ID in non-prod */
 function getAuth0Id(request: FastifyRequest): string {
-  const user = (request as any).user
-  return user?.sub ?? user?.payload?.sub ?? (IS_DEV ? DEV_AUTH0_ID : null)
+  const user = request.user
+  return user?.sub ?? (IS_DEV ? DEV_AUTH0_ID : null)
 }
 
 /** Get or create a User record from Auth0 sub */
@@ -23,7 +30,7 @@ async function resolveUser(auth0Id: string, email?: string) {
 
 export default async function meRoutes(fastify: FastifyInstance) {
   // All /me routes require auth
-  fastify.addHook('preHandler', (fastify as any).authenticate)
+  fastify.addHook('preHandler', fastify.authenticate)
 
   // ─── Saved Listings ───────────────────────────────────────────────────────
 
@@ -58,8 +65,9 @@ export default async function meRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/me/saved-listings', async (request, reply) => {
-    const { listingId } = request.body as { listingId: string }
-    if (!listingId) return reply.code(400).send({ error: 'listingId required' })
+    const parseResult = SaveListingSchema.safeParse(request.body)
+    if (!parseResult.success) return reply.code(400).send({ error: 'Invalid request body', details: parseResult.error.errors })
+    const { listingId } = parseResult.data
 
     const auth0Id = getAuth0Id(request)
     const user = await resolveUser(auth0Id)
@@ -122,11 +130,9 @@ export default async function meRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/me/alerts', async (request, reply) => {
-    const { listingId, targetPriceUsd } = request.body as {
-      listingId: string
-      targetPriceUsd?: number | null
-    }
-    if (!listingId) return reply.code(400).send({ error: 'listingId required' })
+    const parseResult = CreateAlertSchema.safeParse(request.body)
+    if (!parseResult.success) return reply.code(400).send({ error: 'Invalid request body', details: parseResult.error.errors })
+    const { listingId, targetPriceUsd } = parseResult.data
 
     const auth0Id = getAuth0Id(request)
     const user = await resolveUser(auth0Id)

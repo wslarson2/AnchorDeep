@@ -1,6 +1,9 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:16-alpine
+    container_name: anchordeep-postgres
     environment:
       POSTGRES_DB: anchordeep
       POSTGRES_USER: postgres
@@ -14,9 +17,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - anchordeep
 
   redis:
     image: redis:7-alpine
+    container_name: anchordeep-redis
     ports:
       - "6379:6379"
     volumes:
@@ -26,9 +32,69 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - anchordeep
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: anchordeep-api
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:dev@postgres:5432/anchordeep
+      REDIS_URL: redis://redis:6379
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN:-your-tenant.auth0.com}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE:-https://api.anchordeep.com}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-change-me-32-char-hex-string-here}
+      PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/docs"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - anchordeep
+    profiles:
+      - full
+
+  app:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    container_name: anchordeep-app
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3001
+      VITE_AUTH0_DOMAIN: ${VITE_AUTH0_DOMAIN:-your-tenant.auth0.com}
+      VITE_AUTH0_CLIENT_ID: ${VITE_AUTH0_CLIENT_ID:-your-auth0-client-id}
+      VITE_AUTH0_AUDIENCE: ${VITE_AUTH0_AUDIENCE:-https://api.anchordeep.com}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    networks:
+      - anchordeep
+    profiles:
+      - full
 
   bull-board:
     image: deadly0/bull-board
+    container_name: anchordeep-bull-board
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -37,7 +103,13 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    networks:
+      - anchordeep
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  anchordeep:
+    driver: bridge

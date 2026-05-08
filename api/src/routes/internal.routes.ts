@@ -6,7 +6,7 @@ import type { NormalizedListing } from '@anchordeep/shared'
 export default async function internalRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/internal/snapshots',
-    { preHandler: [(fastify as any).authenticateInternal] },
+    { preHandler: [fastify.authenticateInternal] },
     async (request, reply) => {
       const body = request.body as { listings: NormalizedListing[] }
 

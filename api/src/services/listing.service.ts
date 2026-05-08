@@ -54,8 +54,53 @@ export async function getListings(filters: ListingFilters): Promise<PaginatedLis
   const limit = Math.min(filters.limit ?? 24, 100)
   const skip = (page - 1) * limit
   const where = buildWhere(filters)
-  const orderBy = buildOrderBy(filters.sort)
 
+  // For price_drop sort, we need to join with priceHistory and filter/order by recent drops
+  if (filters.sort === 'price_drop') {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const [listings, total] = await prisma.$transaction([
+      prisma.$queryRaw`
+        SELECT DISTINCT l.* FROM "Listing" l
+        INNER JOIN "PriceSnapshot" ps ON l.id = ps."listingId"
+        WHERE l.status = 'ACTIVE'
+          AND ps."priceChanged" = true
+          AND ps."priceChangePct" < 0
+          AND ps."createdAt" >= ${thirtyDaysAgo}
+          ${filters.make ? Prisma.sql`AND l.make ILIKE ${`%${filters.make}%`}` : Prisma.empty}
+          ${filters.model ? Prisma.sql`AND l.model ILIKE ${`%${filters.model}%`}` : Prisma.empty}
+          ${filters.type ? Prisma.sql`AND l.type = ${filters.type}` : Prisma.empty}
+          ${filters.state ? Prisma.sql`AND l.state = ${filters.state.toUpperCase()}` : Prisma.empty}
+          ${filters.propulsion ? Prisma.sql`AND l.propulsion = ${filters.propulsion}` : Prisma.empty}
+        ORDER BY ps."createdAt" DESC
+        LIMIT ${limit}
+        OFFSET ${skip}
+      `,
+      prisma.$queryRaw`
+        SELECT COUNT(DISTINCT l.id) as count FROM "Listing" l
+        INNER JOIN "PriceSnapshot" ps ON l.id = ps."listingId"
+        WHERE l.status = 'ACTIVE'
+          AND ps."priceChanged" = true
+          AND ps."priceChangePct" < 0
+          AND ps."createdAt" >= ${thirtyDaysAgo}
+          ${filters.make ? Prisma.sql`AND l.make ILIKE ${`%${filters.make}%`}` : Prisma.empty}
+          ${filters.model ? Prisma.sql`AND l.model ILIKE ${`%${filters.model}%`}` : Prisma.empty}
+          ${filters.type ? Prisma.sql`AND l.type = ${filters.type}` : Prisma.empty}
+          ${filters.state ? Prisma.sql`AND l.state = ${filters.state.toUpperCase()}` : Prisma.empty}
+          ${filters.propulsion ? Prisma.sql`AND l.propulsion = ${filters.propulsion}` : Prisma.empty}
+      `,
+    ])
+
+    const listingCount = (total as any[])?.[0]?.count ?? 0
+    return {
+      listings: (listings as any[]).map((l) => toSummaryRaw(l)),
+      total: Number(listingCount),
+      page,
+      limit,
+      totalPages: Math.ceil(Number(listingCount) / limit),
+    }
+  }
+
+  const orderBy = buildOrderBy(filters.sort)
   const [listings, total] = await prisma.$transaction([
     prisma.listing.findMany({
       where,
@@ -157,6 +202,27 @@ export async function getSearchSuggestions(q: string) {
 }
 
 // ─── Mappers ───────────────────────────────────────────────────────────────
+
+function toSummaryRaw(l: Record<string, any>): ListingSummary {
+  return {
+    id: l.id,
+    make: l.make,
+    model: l.model,
+    year: l.year,
+    type: l.type,
+    lengthFt: l.lengthFt ? Number(l.lengthFt) : null,
+    currentPriceUsd: l.currentPriceUsd,
+    city: l.city,
+    state: l.state,
+    status: l.status,
+    firstSeenAt: l.firstSeenAt.toISOString(),
+    lastSeenAt: l.lastSeenAt.toISOString(),
+    soldAt: l.soldAt?.toISOString() ?? null,
+    thumbnailUrl: null,
+    sourceCount: 0,
+    priceDrop30dPct: null,
+  }
+}
 
 export function toSummary(l: any): ListingSummary {
   const firstDrop = l.priceHistory?.[0]

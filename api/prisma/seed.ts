@@ -22,108 +22,47 @@ const specKeys = [
   { key: 'head_count', label: 'Heads', unit: null, dataType: 'NUMBER' as const, sortOrder: 10 },
 ]
 
-const seedListings = [
+interface SeedListing {
+  make: string
+  model: string
+  year: number
+  type: 'POWERBOAT' | 'SAILBOAT' | 'FISHING' | 'PONTOON' | 'PWC'
+  lengthFt: number
+  hullMaterial: 'FIBERGLASS' | 'ALUMINUM' | 'WOOD' | 'COMPOSITE'
+  propulsion: 'INBOARD' | 'OUTBOARD' | 'JET' | 'SAIL'
+  engineHours: number
+  city: string
+  state: string
+  currentPriceUsd: number
+  source: { site: 'BOATS_COM' | 'YACHT_WORLD' | 'BOAT_TRADER' | 'CRAIGSLIST' | 'EBAY_MOTORS'; externalId: string; url: string }
+  images: string[]
+  priceHistory: number[]
+  specs: Record<string, string>
+  status?: 'ACTIVE' | 'SOLD'
+  soldAt?: Date
+  soldPriceUsd?: number
+}
+
+const seedListings: SeedListing[] = [
   {
-    make: 'Sea Ray', model: 'Sundancer 320', year: 2018, type: 'POWERBOAT' as const,
-    lengthFt: 32, hullMaterial: 'FIBERGLASS' as const, propulsion: 'INBOARD' as const,
+    make: 'Sea Ray', model: 'Sundancer 320', year: 2018, type: 'POWERBOAT',
+    lengthFt: 32, hullMaterial: 'FIBERGLASS', propulsion: 'INBOARD',
     engineHours: 420, city: 'Fort Lauderdale', state: 'FL',
-    currentPriceUsd: 8500000, // $85,000 in cents
-    source: { site: 'BOATS_COM' as const, externalId: 'bc-001', url: 'https://www.boats.com/listing/bc-001' },
+    currentPriceUsd: 8500000,
+    source: { site: 'BOATS_COM', externalId: 'bc-001', url: 'https://www.boats.com/listing/bc-001' },
     images: ['https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800'],
     priceHistory: [9200000, 8800000, 8500000],
     specs: { beam_ft: '10.8', engine_brand: 'MerCruiser', engine_hp: '300', fuel_type: 'Gasoline' },
   },
-  {
-    make: 'Beneteau', model: 'Oceanis 45', year: 2016, type: 'SAILBOAT' as const,
-    lengthFt: 45, hullMaterial: 'FIBERGLASS' as const, propulsion: 'SAIL' as const,
-    engineHours: 890, city: 'Annapolis', state: 'MD',
-    currentPriceUsd: 18900000,
-    source: { site: 'YACHT_WORLD' as const, externalId: 'yw-002', url: 'https://www.yachtworld.com/listing/yw-002' },
-    images: ['https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800'],
-    priceHistory: [20500000, 19500000, 18900000],
-    specs: { beam_ft: '14.4', draft_ft: '6.6', cabin_count: '3', head_count: '2', fuel_type: 'Diesel' },
-  },
-  {
-    make: 'Yamaha', model: 'AR240', year: 2021, type: 'POWERBOAT' as const,
-    lengthFt: 24, hullMaterial: 'FIBERGLASS' as const, propulsion: 'JET' as const,
-    engineHours: 120, city: 'Lake Havasu City', state: 'AZ',
-    currentPriceUsd: 4200000,
-    source: { site: 'BOAT_TRADER' as const, externalId: 'bt-003', url: 'https://www.boattrader.com/listing/bt-003' },
-    images: ['https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800'],
-    priceHistory: [4200000],
-    specs: { beam_ft: '8.5', engine_brand: 'Yamaha', engine_hp: '180', fuel_type: 'Gasoline' },
-  },
-  {
-    make: 'Grady-White', model: 'Canyon 271', year: 2019, type: 'FISHING' as const,
-    lengthFt: 27, hullMaterial: 'FIBERGLASS' as const, propulsion: 'OUTBOARD' as const,
-    engineHours: 310, city: 'Morehead City', state: 'NC',
-    currentPriceUsd: 6800000,
-    source: { site: 'BOAT_TRADER' as const, externalId: 'bt-004', url: 'https://www.boattrader.com/listing/bt-004' },
-    images: ['https://images.unsplash.com/photo-1590041794748-2d8eb73a571c?w=800'],
-    priceHistory: [7500000, 7100000, 6800000],
-    specs: { beam_ft: '9.5', engine_brand: 'Yamaha', engine_hp: '300', fuel_type: 'Gasoline', fuel_capacity_gal: '148' },
-  },
-  {
-    make: 'Harris', model: 'Solstice 250', year: 2022, type: 'PONTOON' as const,
-    lengthFt: 25, hullMaterial: 'ALUMINUM' as const, propulsion: 'OUTBOARD' as const,
-    engineHours: 55, city: 'Nashville', state: 'TN',
-    currentPriceUsd: 5500000,
-    source: { site: 'BOATS_COM' as const, externalId: 'bc-005', url: 'https://www.boats.com/listing/bc-005' },
-    images: ['https://images.unsplash.com/photo-1618765645758-5b61a15c0e4b?w=800'],
-    priceHistory: [5500000],
-    specs: { beam_ft: '8.5', engine_brand: 'Mercury', engine_hp: '150', fuel_type: 'Gasoline' },
-  },
-  {
-    make: 'Sea-Doo', model: 'GTX 300', year: 2023, type: 'PWC' as const,
-    lengthFt: 10, hullMaterial: 'COMPOSITE' as const, propulsion: 'JET' as const,
-    engineHours: 22, city: 'Tampa', state: 'FL',
-    currentPriceUsd: 1650000,
-    source: { site: 'EBAY_MOTORS' as const, externalId: 'em-006', url: 'https://www.ebay.com/itm/em-006' },
-    images: ['https://images.unsplash.com/photo-1531722569936-825d4eaf3af4?w=800'],
-    priceHistory: [1800000, 1650000],
-    specs: { engine_brand: 'Rotax', engine_hp: '300', fuel_type: 'Gasoline' },
-  },
-  {
-    make: 'Catalina', model: '425', year: 2015, type: 'SAILBOAT' as const,
-    lengthFt: 42.5, hullMaterial: 'FIBERGLASS' as const, propulsion: 'SAIL' as const,
-    engineHours: 1200, city: 'San Diego', state: 'CA',
-    currentPriceUsd: 14500000,
-    source: { site: 'YACHT_WORLD' as const, externalId: 'yw-007', url: 'https://www.yachtworld.com/listing/yw-007' },
-    images: ['https://images.unsplash.com/photo-1565035010268-a3816f98589a?w=800'],
-    priceHistory: [16000000, 15200000, 14500000],
-    specs: { beam_ft: '13.5', draft_ft: '5.5', cabin_count: '2', head_count: '2', fuel_type: 'Diesel' },
-  },
-  {
-    make: 'Ranger', model: 'RT178', year: 2020, type: 'FISHING' as const,
-    lengthFt: 17.8, hullMaterial: 'FIBERGLASS' as const, propulsion: 'OUTBOARD' as const,
-    engineHours: 180, city: 'Tulsa', state: 'OK',
-    currentPriceUsd: 2400000,
-    source: { site: 'CRAIGSLIST' as const, externalId: 'cl-008', url: 'https://tulsa.craigslist.org/boa/cl-008' },
-    images: ['https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800'],
-    priceHistory: [2600000, 2400000],
-    specs: { engine_brand: 'Evinrude', engine_hp: '115', fuel_type: 'Gasoline' },
-  },
-  {
-    make: 'Boston Whaler', model: 'Outrage 280', year: 2017, type: 'POWERBOAT' as const,
-    lengthFt: 28, hullMaterial: 'FIBERGLASS' as const, propulsion: 'OUTBOARD' as const,
-    engineHours: 650, city: 'Newport', state: 'RI',
-    currentPriceUsd: 7200000,
-    source: { site: 'BOAT_TRADER' as const, externalId: 'bt-009', url: 'https://www.boattrader.com/listing/bt-009' },
-    images: ['https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=800'],
-    priceHistory: [8000000, 7600000, 7200000],
-    specs: { beam_ft: '9.2', engine_brand: 'Mercury', engine_hp: '300', fuel_type: 'Gasoline', fuel_capacity_gal: '100' },
-  },
-  {
-    make: 'Chris-Craft', model: 'Launch 25', year: 2014, type: 'POWERBOAT' as const,
-    lengthFt: 25, hullMaterial: 'WOOD' as const, propulsion: 'INBOARD' as const,
-    engineHours: 920, city: 'Lake Geneva', state: 'WI',
-    currentPriceUsd: 9900000,
-    soldAt: new Date('2024-08-15'), status: 'SOLD' as const, soldPriceUsd: 9600000,
-    source: { site: 'BOATS_COM' as const, externalId: 'bc-010', url: 'https://www.boats.com/listing/bc-010' },
-    images: ['https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=800'],
-    priceHistory: [11000000, 10500000, 9900000, 9600000],
-    specs: { beam_ft: '8.3', engine_brand: 'Crusader', engine_hp: '340', fuel_type: 'Gasoline' },
-  },
+  { make: 'Beneteau', model: 'Oceanis 45', year: 2016, type: 'SAILBOAT', lengthFt: 45, hullMaterial: 'FIBERGLASS', propulsion: 'SAIL', engineHours: 890, city: 'Annapolis', state: 'MD', currentPriceUsd: 18900000, source: { site: 'YACHT_WORLD', externalId: 'yw-002', url: 'https://www.yachtworld.com/listing/yw-002' }, images: ['https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800'], priceHistory: [20500000, 19500000, 18900000], specs: { beam_ft: '14.4', draft_ft: '6.6', cabin_count: '3', head_count: '2', fuel_type: 'Diesel' } },
+  { make: 'Yamaha', model: 'AR240', year: 2021, type: 'POWERBOAT', lengthFt: 24, hullMaterial: 'FIBERGLASS', propulsion: 'JET', engineHours: 120, city: 'Lake Havasu City', state: 'AZ', currentPriceUsd: 4200000, source: { site: 'BOAT_TRADER', externalId: 'bt-003', url: 'https://www.boattrader.com/listing/bt-003' }, images: ['https://images.unsplash.com/photo-1605281317010-fe5ffe798166?w=800'], priceHistory: [4200000], specs: { beam_ft: '8.5', engine_brand: 'Yamaha', engine_hp: '180', fuel_type: 'Gasoline' } },
+  { make: 'Grady-White', model: 'Canyon 271', year: 2019, type: 'FISHING', lengthFt: 27, hullMaterial: 'FIBERGLASS', propulsion: 'OUTBOARD', engineHours: 310, city: 'Morehead City', state: 'NC', currentPriceUsd: 6800000, source: { site: 'BOAT_TRADER', externalId: 'bt-004', url: 'https://www.boattrader.com/listing/bt-004' }, images: ['https://images.unsplash.com/photo-1590041794748-2d8eb73a571c?w=800'], priceHistory: [7500000, 7100000, 6800000], specs: { beam_ft: '9.5', engine_brand: 'Yamaha', engine_hp: '300', fuel_type: 'Gasoline', fuel_capacity_gal: '148' } },
+  { make: 'Harris', model: 'Solstice 250', year: 2022, type: 'PONTOON', lengthFt: 25, hullMaterial: 'ALUMINUM', propulsion: 'OUTBOARD', engineHours: 55, city: 'Nashville', state: 'TN', currentPriceUsd: 5500000, source: { site: 'BOATS_COM', externalId: 'bc-005', url: 'https://www.boats.com/listing/bc-005' }, images: ['https://images.unsplash.com/photo-1618765645758-5b61a15c0e4b?w=800'], priceHistory: [5500000], specs: { beam_ft: '8.5', engine_brand: 'Mercury', engine_hp: '150', fuel_type: 'Gasoline' } },
+  { make: 'Sea-Doo', model: 'GTX 300', year: 2023, type: 'PWC', lengthFt: 10, hullMaterial: 'COMPOSITE', propulsion: 'JET', engineHours: 22, city: 'Tampa', state: 'FL', currentPriceUsd: 1650000, source: { site: 'EBAY_MOTORS', externalId: 'em-006', url: 'https://www.ebay.com/itm/em-006' }, images: ['https://images.unsplash.com/photo-1531722569936-825d4eaf3af4?w=800'], priceHistory: [1800000, 1650000], specs: { engine_brand: 'Rotax', engine_hp: '300', fuel_type: 'Gasoline' } },
+  { make: 'Catalina', model: '425', year: 2015, type: 'SAILBOAT', lengthFt: 42.5, hullMaterial: 'FIBERGLASS', propulsion: 'SAIL', engineHours: 1200, city: 'San Diego', state: 'CA', currentPriceUsd: 14500000, source: { site: 'YACHT_WORLD', externalId: 'yw-007', url: 'https://www.yachtworld.com/listing/yw-007' }, images: ['https://images.unsplash.com/photo-1565035010268-a3816f98589a?w=800'], priceHistory: [16000000, 15200000, 14500000], specs: { beam_ft: '13.5', draft_ft: '5.5', cabin_count: '2', head_count: '2', fuel_type: 'Diesel' } },
+  { make: 'Ranger', model: 'RT178', year: 2020, type: 'FISHING', lengthFt: 17.8, hullMaterial: 'FIBERGLASS', propulsion: 'OUTBOARD', engineHours: 180, city: 'Tulsa', state: 'OK', currentPriceUsd: 2400000, source: { site: 'CRAIGSLIST', externalId: 'cl-008', url: 'https://tulsa.craigslist.org/boa/cl-008' }, images: ['https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800'], priceHistory: [2600000, 2400000], specs: { engine_brand: 'Evinrude', engine_hp: '115', fuel_type: 'Gasoline' } },
+  { make: 'Boston Whaler', model: 'Outrage 280', year: 2017, type: 'POWERBOAT', lengthFt: 28, hullMaterial: 'FIBERGLASS', propulsion: 'OUTBOARD', engineHours: 650, city: 'Newport', state: 'RI', currentPriceUsd: 7200000, source: { site: 'BOAT_TRADER', externalId: 'bt-009', url: 'https://www.boattrader.com/listing/bt-009' }, images: ['https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=800'], priceHistory: [8000000, 7600000, 7200000], specs: { beam_ft: '9.2', engine_brand: 'Mercury', engine_hp: '300', fuel_type: 'Gasoline', fuel_capacity_gal: '100' } },
+  { make: 'Chris-Craft', model: 'Launch 25', year: 2014, type: 'POWERBOAT', lengthFt: 25, hullMaterial: 'WOOD', propulsion: 'INBOARD', engineHours: 920, city: 'Lake Geneva', state: 'WI', currentPriceUsd: 9900000, status: 'SOLD', soldAt: new Date('2024-08-15'), soldPriceUsd: 9600000, source: { site: 'BOATS_COM', externalId: 'bc-010', url: 'https://www.boats.com/listing/bc-010' }, images: ['https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=800'], priceHistory: [11000000, 10500000, 9900000, 9600000], specs: { beam_ft: '8.3', engine_brand: 'Crusader', engine_hp: '340', fuel_type: 'Gasoline' } },
 ]
 
 async function main() {
@@ -159,9 +98,9 @@ async function main() {
         city: seed.city,
         state: seed.state,
         currentPriceUsd: seed.currentPriceUsd,
-        status: (seed as any).status ?? 'ACTIVE',
-        soldAt: (seed as any).soldAt ?? null,
-        soldPriceUsd: (seed as any).soldPriceUsd ?? null,
+        status: seed.status ?? 'ACTIVE',
+        soldAt: seed.soldAt ?? null,
+        soldPriceUsd: seed.soldPriceUsd ?? null,
         fingerprintHash: fp,
         firstSeenAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
         lastSeenAt: new Date(),
@@ -180,8 +119,8 @@ async function main() {
           site: seed.source.site,
           externalId: seed.source.externalId,
           sourceUrl: seed.source.url,
-          isActive: (seed as any).status !== 'SOLD',
-          soldHint: (seed as any).status === 'SOLD',
+          isActive: seed.status !== 'SOLD',
+          soldHint: seed.status === 'SOLD',
           lastScrapedAt: new Date(),
           lastSuccessAt: new Date(),
         },
@@ -202,7 +141,7 @@ async function main() {
             listingId: listing.id,
             sourceId: (await prisma.listingSource.findFirst({ where: { listingId: listing.id } }))!.id,
             priceUsd: prices[i],
-            status: i === prices.length - 1 ? ((seed as any).status ?? 'ACTIVE') : 'ACTIVE',
+            status: i === prices.length - 1 ? (seed.status ?? 'ACTIVE') : 'ACTIVE',
             priceChanged,
             priceChangePct: priceChanged && prev ? Math.round(((prices[i] - prev) / prev) * 10000) / 100 : null,
             prevPriceUsd: priceChanged ? prev : null,
