@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum SourceSite {
+  BOAT_TRADER
+  YACHT_WORLD
+  BOATS_COM
+  EBAY_MOTORS
+  CRAIGSLIST
+  FACEBOOK_MARKETPLACE
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  EXPIRED
+  RELISTED
+}
+
+enum BoatType {
+  POWERBOAT
+  SAILBOAT
+  PONTOON
+  PWC
+  FISHING
+  HOUSEBOAT
+  CATAMARAN
+  INFLATABLE
+  OTHER
+}
+
+enum HullMaterial {
+  FIBERGLASS
+  ALUMINUM
+  STEEL
+  WOOD
+  COMPOSITE
+  INFLATABLE
+  OTHER
+}
+
+enum PropulsionType {
+  OUTBOARD
+  INBOARD
+  STERNDRIVE
+  SAIL
+  ELECTRIC
+  JET
+  OTHER
+}
+
+enum SpecDataType {
+  NUMBER
+  TEXT
+  BOOLEAN
+}
+
+// ─────────────────────────────────────────────
+// SPEC KEY LOOKUP TABLE
+// ─────────────────────────────────────────────
+
+model SpecKey {
+  id       String      @id @default(cuid())
+  key      String      @unique  // slug: beam_ft, draft_ft, engine_brand, fuel_type
+  label    String               // display: "Beam (ft)"
+  unit     String?              // ft, kts, gal, hp
+  dataType SpecDataType @default(TEXT)
+  sortOrder Int        @default(0)
+
+  specs    ListingSpec[]
+}
+
+// ─────────────────────────────────────────────
+// CANONICAL LISTING
+// ─────────────────────────────────────────────
+
+model Listing {
+  id          String        @id @default(cuid())
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Core identity
+  make        String?
+  model       String?
+  year        Int?
+  type        BoatType?
+  lengthFt    Decimal?      @db.Decimal(5, 2)
+  hullMaterial HullMaterial?
+  propulsion  PropulsionType?
+  engineHours Int?
+  description String?
+
+  // Location
+  city        String?
+  state       String?       // 2-letter US state or country code
+  lat         Decimal?      @db.Decimal(9, 6)
+  lng         Decimal?      @db.Decimal(9, 6)
+
+  // Current state (denormalized cache — source of truth is PriceSnapshot)
+  currentPriceUsd   Int?    // in cents
+  status            ListingStatus @default(ACTIVE)
+  firstSeenAt       DateTime @default(now())
+  lastSeenAt        DateTime @default(now())
+  soldAt            DateTime?
+  soldPriceUsd      Int?    // final confirmed price in cents
+
+  // Deduplication
+  fingerprintHash   String?
+  canonicalSourceId String?
+
+  // Relations
+  sources      ListingSource[]
+  priceHistory PriceSnapshot[]
+  specs        ListingSpec[]
+  images       ListingImage[]
+  savedBy      SavedListing[]
+  alerts       PriceAlert[]
+
+  @@index([status, state])
+  @@index([type, status])
+  @@index([make, model, year])
+  @@index([fingerprintHash])
+  @@index([currentPriceUsd])
+  @@index([firstSeenAt])
+  @@index([lat, lng])
+}
+
+// ─────────────────────────────────────────────
+// FLEXIBLE SPECS (key-value, extensible)
+// ─────────────────────────────────────────────
+
+model ListingSpec {
+  id          String   @id @default(cuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  specKeyId   String
+  specKey     SpecKey  @relation(fields: [specKeyId], references: [id])
+
+  valueText   String           // raw string always stored
+  valueNumber Decimal?  @db.Decimal(12, 4)  // parsed numeric (nullable)
+
+  @@unique([listingId, specKeyId])
+  @@index([specKeyId, valueNumber])  // enables range filter queries (beam between 8-12 ft)
+}
+
+// ─────────────────────────────────────────────
+// SOURCE TRACKING
+// ─────────────────────────────────────────────
+
+model ListingSource {
+  id               String     @id @default(cuid())
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  listingId        String
+  listing          Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  site             SourceSite
+  externalId       String
+  sourceUrl        String
+
+  lastScrapedAt    DateTime?
+  lastSuccessAt    DateTime?
+  consecutiveFails Int        @default(0)
+  isActive         Boolean    @default(true)
+  soldHint         Boolean    @default(false)  // page said "sold"
+
+  rawDataJson      Json?
+
+  @@unique([site, externalId])
+  @@index([listingId])
+  @@index([site, isActive])
+  @@index([lastScrapedAt])
+}
+
+// ─────────────────────────────────────────────
+// PRICE HISTORY — append-only
+// ─────────────────────────────────────────────
+
+model PriceSnapshot {
+  id             String        @id @default(cuid())
+  createdAt      DateTime      @default(now())
+
+  listingId      String
+  listing        Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  sourceId       String
+
+  priceUsd       Int           // in cents
+  status         ListingStatus
+  priceChanged   Boolean       @default(false)
+  priceChangePct Decimal?      @db.Decimal(6, 2)
+  prevPriceUsd   Int?
+  rawPriceStr    String?
+
+  @@index([listingId, createdAt])
+  @@index([createdAt])
+  @@index([priceChanged])
+}
+
+// ─────────────────────────────────────────────
+// SUPPORTING TABLES
+// ─────────────────────────────────────────────
+
+model ListingImage {
+  id          String   @id @default(cuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url         String
+  isThumbnail Boolean  @default(false)
+  sortOrder   Int      @default(0)
+
+  @@index([listingId, sortOrder])
+}
+
+model User {
+  id            String         @id @default(cuid())
+  auth0Id       String         @unique
+  email         String         @unique
+  createdAt     DateTime       @default(now())
+  savedListings SavedListing[]
+  alerts        PriceAlert[]
+}
+
+model SavedListing {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+}
+
+model PriceAlert {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId      String
+  listing        Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  targetPriceUsd Int?     // alert when price drops to this (cents); null = any drop
+  notified       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, listingId])
+}
+
+// ─────────────────────────────────────────────
+// SCRAPE AUDIT LOG
+// ─────────────────────────────────────────────
+
+model ScrapeRun {
+  id             String     @id @default(cuid())
+  site           SourceSite
+  startedAt      DateTime   @default(now())
+  completedAt    DateTime?
+  listingsFound  Int        @default(0)
+  listingsNew    Int        @default(0)
+  priceChanges   Int        @default(0)
+  soldDetected   Int        @default(0)
+  errors         Int        @default(0)
+  errorLog       Json?
+
+  @@index([site, startedAt])
+}

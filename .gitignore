@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.production
+.turbo/
+*.log
+.DS_Store
+
+# Deployment files - keep server configs local
+docker-compose.prod.yml
+deploy-*.log

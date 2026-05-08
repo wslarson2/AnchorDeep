@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/20ela/Projects/Ala_Wai_Sluice/**)",
+      "Bash(npm run *)"
+    ]
+  }
+}

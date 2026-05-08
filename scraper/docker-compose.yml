@@ -1,0 +1,96 @@
+version: '3.9'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: anchordeep-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: anchordeep
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - anchordeep
+
+  # Redis cache and job queue
+  redis:
+    image: redis:7-alpine
+    container_name: anchordeep-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - anchordeep
+
+  # AnchorDeep Scraper Service
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: anchordeep-scraper
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database connection
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/anchordeep
+
+      # Redis connection
+      REDIS_URL: redis://redis:6379
+
+      # Application settings
+      NODE_ENV: production
+      API_BASE_URL: http://localhost:3001
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-change-in-production}
+
+      # Scraper settings
+      PLAYWRIGHT_HEADLESS: "true"
+      SCRAPE_ON_STARTUP: ${SCRAPE_ON_STARTUP:-true}
+
+      # eBay settings (optional)
+      EBAY_APP_ID: ${EBAY_APP_ID:-}
+
+      # Proxy (optional)
+      PROXY_URL: ${PROXY_URL:-}
+
+    # Mount project directory for development/logs
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+
+    networks:
+      - anchordeep
+
+    # Logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  anchordeep:
+    driver: bridge
