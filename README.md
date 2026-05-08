@@ -310,6 +310,8 @@ MIT
 
 Built by [wslarson2](https://github.com/wslarson2).
 
+**Development tooling**: This project was developed with modern AI-assisted coding tools (Claude) for scaffolding, code review, and quality improvements. The architecture, feature decisions, bug fixes, and all engineering choices are my own.
+
 ---
 
 **Happy boat hunting!** ⛵
