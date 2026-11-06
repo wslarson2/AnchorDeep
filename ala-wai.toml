@@ -1,0 +1,7 @@
+name = "anchordeep"
+port = 5173
+service = "app"
+compose = "ala-wai.compose.yaml"
+health = "/"
+public = false
+description = "Catamaran marketplace aggregator (frontend; API and scraper run alongside)."

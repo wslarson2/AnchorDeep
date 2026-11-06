@@ -17,6 +17,7 @@ RUN npm ci --prefer-offline --no-audit 2>/dev/null || npm install
 COPY scraper/src scraper/src
 
 # Build
+RUN cd packages/shared && npm run build
 RUN cd scraper && npm run build
 
 # Runtime stage
@@ -36,6 +37,7 @@ COPY scraper/package.json scraper/
 RUN npm ci --prefer-offline --no-audit --omit=dev 2>/dev/null || npm install --omit=dev
 
 # Copy built code from builder
+COPY --from=builder /app/packages/shared/dist packages/shared/dist
 COPY --from=builder /app/scraper/dist scraper/dist
 
 # Create non-root user

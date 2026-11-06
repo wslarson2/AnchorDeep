@@ -10,3 +10,6 @@ dist/
 # Deployment files - keep server configs local
 docker-compose.prod.yml
 deploy-*.log
+
+# Real secrets live only on the server
+.env.production

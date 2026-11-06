@@ -17,7 +17,8 @@ RUN npm ci --prefer-offline --no-audit 2>/dev/null || npm install
 COPY app/src app/src
 
 # Build
-RUN cd app && npm run build
+ARG BASE_PATH=/
+RUN cd app && BASE_PATH=$BASE_PATH npm run build
 
 # Runtime stage - serve with nginx
 FROM nginx:alpine

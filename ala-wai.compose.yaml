@@ -1,0 +1,96 @@
+# AnchorDeep on Scott's ala-wai server (deployed by wslarson2/ala-wai-deploy).
+# The frontend (`app`) is served at /anchordeep/ on the tailnet; its nginx proxies
+# /api/ to the api service. Nothing publishes host ports.
+#
+# Secrets come from .env next to this file on the server
+# (/srv/ala-wai/apps/wslarson2__AnchorDeep/.env), never from git.
+#
+# The volumes reuse the ones created by the original docker-compose.prod.yml
+# stack, so the existing listings database carries over.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POSTGRES_DB: ${DB_NAME:-anchordeep}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+      network: host   # build sandbox can't reach the server's DNS resolver otherwise
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-anchordeep}
+      REDIS_URL: redis://redis:6379
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN:-}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE:-}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?set INTERNAL_API_KEY in .env}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  app:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+      network: host
+      args:
+        BASE_PATH: /anchordeep/
+    restart: unless-stopped
+    depends_on: [api]
+
+  scraper:
+    build:
+      context: .
+      dockerfile: scraper/Dockerfile
+      network: host
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-anchordeep}
+      REDIS_URL: redis://redis:6379
+      API_BASE_URL: http://api:3001
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      PLAYWRIGHT_HEADLESS: "true"
+      SCRAPE_ON_STARTUP: ${SCRAPE_ON_STARTUP:-false}
+      EBAY_APP_ID: ${EBAY_APP_ID:-}
+      PROXY_URL: ${PROXY_URL:-}
+
+volumes:
+  postgres_data:
+    name: anchordeep_postgres_data
+  redis_data:
+    name: anchordeep_redis_data

@@ -8,7 +8,7 @@ import NotFoundPage from './pages/NotFoundPage.tsx'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-1">
