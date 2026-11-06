@@ -18,6 +18,8 @@ COPY app/src app/src
 
 # Build
 ARG BASE_PATH=/
+# tsc type-checks against the shared package's compiled .d.ts files
+RUN cd packages/shared && npm run build
 RUN cd app && BASE_PATH=$BASE_PATH npm run build
 
 # Runtime stage - serve with nginx
