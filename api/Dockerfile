@@ -1,6 +1,9 @@
 # Build stage
 FROM node:22-alpine AS builder
 
+# openssl lets `prisma generate` pick the matching query engine
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Copy monorepo root files
@@ -33,7 +36,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache dumb-init
+# openssl: Prisma's query engine needs it on Alpine
+RUN apk add --no-cache dumb-init openssl
 
 COPY package.json package-lock.json* ./
 COPY packages ./packages
@@ -43,6 +47,8 @@ RUN npm ci --prefer-offline --no-audit --omit=dev 2>/dev/null || npm install --o
 
 COPY --from=builder /app/packages/shared/dist packages/shared/dist
 COPY --from=builder /app/api/dist api/dist
+# The runtime npm install above drops the client that `prisma generate` built.
+COPY --from=builder /app/node_modules/.prisma node_modules/.prisma
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
